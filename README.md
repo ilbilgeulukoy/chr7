@@ -25,7 +25,7 @@ Percent-based distribution of + / - strands by transcript types.
 Violin Plot of mRNA Transcript Lengths
 Focused on mRNA entries to visualize transcript length distributions.
 
-📦 Packages Used
+📦 Packages Used :
 tidyverse
 janitor
 readr
@@ -62,7 +62,7 @@ Kruskal-Wallis Test: Non-parametric test to assess differences between chromosom
 Dunn's Test: Post-hoc pairwise comparison with Bonferroni correction.
 
 
-📦 Libraries Used
+📦 Libraries Used :
 tidyverse
 janitor
 rstatix
