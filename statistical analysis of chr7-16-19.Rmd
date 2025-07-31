@@ -1,0 +1,162 @@
+---
+title: "statistical analysis of chr7-16-19"
+author: "ilbilgeulukoy"
+date: "2025-07-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# reading the files of chr6-16-19
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>% clean_names()
+chr16 <- read_tsv("~/Downloads/chr16.tsv", col_types = cols(.default = "c")) %>% clean_names()
+chr19 <- read_tsv("~/Downloads/chr19.tsv", col_types = cols(.default = "c")) %>% clean_names()
+
+```
+
+#selection of all mRNAs in chromosomes
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+chr7_lengths <- chr7 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr7") %>%
+  select(chr, transcript_length)
+
+chr16_lengths <- chr16 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr16") %>%
+  select(chr, transcript_length)
+
+chr19_lengths <- chr19 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr19") %>%
+  select(chr, transcript_length) 
+  
+  combined_lengths <- bind_rows(chr7_lengths, chr16_lengths, chr19_lengths) 
+  
+```
+
+
+#selection of all mRNAs<5000bp
+```{r}
+chr7_lengths <- chr7 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr7") %>%
+  filter(transcript_length < 5000, !is.na(transcript_length)) %>% 
+  select(chr, transcript_length)
+
+chr16_lengths <- chr16 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr16") %>%
+  filter(transcript_length <5000, !is.na(transcript_length)) %>% 
+  select(chr, transcript_length)
+
+chr19_lengths <- chr19 %>%
+  filter(transcript_type == "mRNA") %>%
+  mutate(transcript_length = as.numeric(stop) - as.numeric(start),
+         chr = "chr19") %>%
+  filter(transcript_length <5000, !is.na(transcript_length)) %>% 
+select(chr, transcript_length)
+
+combined_lengths <- bind_rows(chr7_lengths, chr16_lengths, chr19_lengths)
+cleaned_lengths <- combined_lengths 
+```
+
+
+
+#IQR based cleaning for mRNAs  
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+cleaned_lengths <- combined_lengths %>% 
+  group_by(chr) %>%
+  mutate(
+    Q1 = quantile(transcript_length, 0.25, na.rm = TRUE),
+    Q3 = quantile(transcript_length, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1,
+    lower_bound = Q1 - 1.5 * IQR,
+    upper_bound = Q3 + 1.5 * IQR
+  ) %>%
+  filter(transcript_length >= lower_bound, transcript_length <= upper_bound) %>%
+  select(-Q1, -Q3, -IQR, -lower_bound, -upper_bound) %>%
+  ungroup()
+```
+
+
+#boxplot
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Boxplot
+ggplot(cleaned_lengths, aes(x = chr, y = transcript_length, fill = chr)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +
+  labs(title = "Boxplot of Transcript Lengths (IQR-cleaned)",
+       x = "Chromosome",
+       y = "Transcript Length (bp)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#histogramme
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+# Histogram + Density (facet ile kromozomlara göre ayrı ayrı)
+ggplot(cleaned_lengths, aes(x = transcript_length, fill = chr)) +
+  geom_histogram(aes(y = ..density..), bins = 50, alpha = 0.5, position = "identity") +
+  geom_density(alpha = 0.6) +
+  facet_wrap(~ chr, scales = "free") +
+  labs(title = "Histogram and Density of Transcript Lengths (IQR-cleaned)",
+       x = "Transcript Length (bp)",
+       y = "Density") +
+  theme_minimal()
+```
+
+#shapiro test to check normal distribution
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rstatix)
+combined_lengths %>%
+  group_by(chr) %>% 
+shapiro_test(transcript_length) %>% 
+#p degerleri coook kucuk o yuzen NORMAL DAGILMIYOR. dolayisiyla NON-PARAMETRIK
+view()
+
+```
+
+#kruskal-wallis test 
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+kruskal.test(transcript_length ~ chr, data = combined_lengths) %>% 
+  view()
+#gruplar arasinda fark var
+
+```
+
+#dunn's
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rstatix)
+
+combined_lengths %>%
+  dunn_test(transcript_length ~ chr, p.adjust.method = "bonferroni") %>% 
+view()
+```
