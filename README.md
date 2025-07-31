@@ -26,11 +26,10 @@ Violin Plot of mRNA Transcript Lengths
 Focused on mRNA entries to visualize transcript length distributions.
 
 📦 Packages Used :
-tidyverse
-janitor
-readr
+tidyverse,
+janitor,
+readr,
 ggplot2
-Data Source
 
 -----------
 
@@ -63,15 +62,13 @@ Dunn's Test: Post-hoc pairwise comparison with Bonferroni correction.
 
 
 📦 Libraries Used :
-tidyverse
-janitor
-rstatix
-ggplot2
-readr
-knitr
+tidyverse,
+janitor,
+rstatix,
+ggplot2,
+readr,
 
 The R Markdown file generates an HTML report that includes:
 
-Cleaned data summaries
-Boxplots and histograms
-Statistical test results with interpretations
+Cleaned data summaries,
+Boxplots and histograms and Statistical test results with interpretations
