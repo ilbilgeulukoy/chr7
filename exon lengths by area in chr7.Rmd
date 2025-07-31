@@ -1,0 +1,166 @@
+---
+title: "exon lengths by area in chr7"
+author: "ilbilgeulukoy"
+date: "2025-07-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## chr7 dosyasini okuma
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+
+read_tsv("~/Downloads/chr7.tsv") %>% 
+  clean_names()
+
+library(readr)
+chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>% 
+  clean_names()
+
+chr7 %>% select(gene_name) %>% 
+  distinct()  %>% count() 
+
+```
+
+#chr7 üzerindeki exon başlangıç noktaları 
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+ chr7 %>%
+     separate_rows(exon_starts, exon_stops, convert = TRUE) %>%
+     mutate(exon_starts = as.numeric(exon_starts)) %>%
+     distinct(exon_starts) %>%
+     ggplot(aes(x = exon_starts, y = 1)) +
+     geom_point(shape = "|", size = 5, color = "purple") +
+     scale_x_continuous(limits = c(1, 160000000)) +
+  labs(x = "Kromozom Pozisyonu", title = "chr7 üzerindeki exon başlangıç noktaları")
+
+```
+ 
+#mean exon lengths with st & max by area in chr7
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+chr7 %>%
+  separate_rows(exon_starts, exon_stops, convert = TRUE) %>%
+  mutate(
+    start = as.numeric(start),
+    exon_length = exon_stops - exon_starts,
+    bölge = case_when(
+      start < 7000000 ~ "ust_telomer_geni",
+      start > 152000000 ~ "alt_telomer_geni",
+      start >= 50000000 & start <= 64000000 ~ "sentromer_geni",
+    )
+  ) %>%
+  filter(!is.na(bölge)) %>%
+  group_by(bölge) %>%
+  summarise(mean_exon_length = mean(exon_length, na.rm = TRUE),
+            std=sd(exon_length),
+            max=max(exon_length) )%>% 
+  view()
+
+```
+
+#chr7 üzerindeki exon başlangıç noktaları ve uzunluklari
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>% 
+  clean_names() 
+chr7 %>%
+  separate_rows(exon_starts, exon_stops, convert = TRUE) %>%
+  mutate(
+    exon_start = as.numeric(exon_starts),
+    exon_stop = as.numeric(exon_stops),
+    exon_length = exon_stop - exon_start
+  ) %>%
+  filter(!is.na(exon_start) & !is.na(exon_stop)) %>%
+  ggplot(aes(x = exon_start)) +
+  geom_segment(aes(xend = exon_start, y = 1, yend = exon_length),
+               color = "darkgreen", size = 0.5) + scale_y_continuous(limits = c(1, 20000)) +
+  geom_point(aes(y = 1), shape = "|", size = 5, color = "red") +
+  scale_x_continuous(limits = c(1, 160000000)) +
+  labs(
+    title = "chr7 üzerindeki exon bölgeleri (uzunluk gösterimli)",
+    x = "Kromozom Pozisyonu",
+    y = "Exon Uzunluğu (bp)"
+  ) +
+  theme_minimal()
+```
+
+# -/+ strand dağılımı 
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+  chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>% 
+  clean_names() 
+chr7 %>%
+  select(transcript_type, strand) %>%
+  group_by(transcript_type, strand) %>%
+  count() %>%
+  mutate(count = n) %>%
+  ggplot(aes(x = transcript_type, y = count, fill = strand)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9)) +
+  scale_y_continuous(breaks = seq(0, 2000, by = 100)) +  
+  labs(
+    title = "+ and - Strand Distribution by Transcript Types",
+    x = "Transcript Type",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+```
+
+# -/+ ratio 
+ 
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+  chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>% 
+  clean_names() 
+chr7 %>%
+  select(transcript_type, strand) %>%
+  group_by(transcript_type, strand) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(transcript_type) %>%
+  mutate(ratio = n / sum(n) * 100) %>% 
+  ggplot(aes(x = transcript_type, y = ratio, fill = strand)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9)) +
+  labs(
+    title = "Strand (+/-) Ratios According to Transcript Types (%)",
+    x = "Transcript Types",
+    y = "Percent(%)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+# mRNA violin plot  
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+chr7 <- read_tsv("~/Downloads/chr7.tsv", col_types = cols(.default = "c")) %>%
+  clean_names() %>%
+  mutate(
+    start = as.numeric(start),
+    stop = as.numeric(stop),
+    transcript_length = stop - start
+  ) %>%
+  filter(transcript_type == "mRNA") 
+ggplot(chr7, aes(x = "mRNA", y = transcript_length)) + 
+  geom_violin(trim = FALSE, fill = "skyblue") + 
+  scale_y_continuous(limits = c(1, 10000))
+theme_minimal()
+```
+ 
