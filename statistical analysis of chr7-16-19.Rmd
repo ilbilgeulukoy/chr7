@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# reading the files of chr6-16-19
+# reading the files of chr7-16-19
 
 ```{r}
 knitr::opts_chunk$set(echo = TRUE)
